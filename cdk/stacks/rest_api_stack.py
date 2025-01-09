@@ -111,8 +111,13 @@ class RestApiStack(BaseStack):
         )
 
     def __create_api_key(self, kms_cmk: kms.Key):
-        # Secrets Manager automatically generates a strong API key
-        # https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.aws_secretsmanager/Secret.html
+        # You can create either ssm.StringParameter or ssm.StringListParameters in a CDK app.
+        # These are public (not secret) values. Parameters of type SecureString cannot be created
+        # directly from a CDK application.[1]  If you want to provision secrets automatically, use
+        # Secrets Manager Secrets[2].
+        #
+        # [1] https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.aws_ssm/README.html#creating-new-ssm-parameters-in-your-cdk-app
+        # [2] https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.aws_secretsmanager/Secret.html
         self.api_key = sm.Secret(
             self, "api_key",
             encryption_key=kms_cmk,

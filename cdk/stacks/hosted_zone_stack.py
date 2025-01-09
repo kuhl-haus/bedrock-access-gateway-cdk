@@ -28,42 +28,12 @@ class HostedZoneStackProps:
 
 
 class HostedZoneStack(BaseStack):
-    """
-    class HostedZoneStack(BaseStack):
-        Manages the creation and configuration of a Route 53 hosted zone within an AWS CloudFormation stack.
-
-        :param scope: The parent construct, usually `App` or `Stack`, representing the scope in which this construct is defined.
-        :param construct_id: The unique identifier for this construct within the given scope.
-        :param props: The properties for configuring the hosted zone stack, encapsulated in `HostedZoneStackProps`.
-        :param kwargs: Additional keyword arguments passed to the base class.
-
-        def __init__(self, scope: Construct, construct_id: str, *, props: HostedZoneStackProps, **kwargs) -> None:
-            Initializes the HostedZoneStack, creates a hosted zone, applies a strict removal policy,
-            and outputs the created hosted zone's ID and name.
-
-            :param scope: The parent construct, usually `App` or `Stack`, representing the scope in which this construct is defined.
-            :param construct_id: The unique identifier for this construct within the given scope.
-            :param props: The properties for configuring the hosted zone stack, encapsulated in `HostedZoneStackProps`.
-            :param kwargs: Additional keyword arguments passed to the base class.
-
-        def __create_delegated_zone(self, construct_id, hosted_zone_name: str):
-            Creates a Route 53 hosted zone with the specified name.
-
-            :param construct_id: The unique identifier for the constructed resource.
-            :param hosted_zone_name: The name of the DNS zone to be hosted.
-            :return: A Route 53 hosted zone object created with the given parameters.
-
-        def __create_zone_delegation(self, hosted_zone_parent_account, delegation_role_name, hosted_zone_parent_name):
-            Creates a delegation record in the parent hosted zone to refer to the hosted zone managed by this stack.
-
-            :param hosted_zone_parent_account: The AWS account ID of the parent hosted zone.
-            :param delegation_role_name: The IAM role name used for delegation in the parent account.
-            :param hosted_zone_parent_name: The name of the parent DNS zone.
-    """
     zone: route53.IHostedZone
 
     def __init__(self, scope: Construct, construct_id: str, *, props: HostedZoneStackProps, **kwargs) -> None:
         """
+        Manages the creation and configuration of a Route 53 hosted zone within an AWS CloudFormation stack.
+
         :param scope: The parent construct, usually `App` or `Stack`, representing the scope in which this construct is defined.
         :param construct_id: The unique identifier for this construct within the given scope.
         :param props: The properties for configuring the hosted zone stack, encapsulated in `HostedZoneStackProps`.
@@ -117,6 +87,13 @@ class HostedZoneStack(BaseStack):
         )
 
     def __create_zone_delegation(self, hosted_zone_parent_account, delegation_role_name, hosted_zone_parent_name):
+        """
+        Creates a delegation record in the parent hosted zone to refer to the hosted zone managed by this stack.
+
+        :param hosted_zone_parent_account: The AWS account ID of the parent hosted zone.
+        :param delegation_role_name: The IAM role name used for delegation in the parent account.
+        :param hosted_zone_parent_name: The name of the parent DNS zone.
+        """
         # import the delegation role by constructing the roleArn
         delegation_role_arn = Stack.of(self).format_arn(
             region="",  # IAM is global in each partition

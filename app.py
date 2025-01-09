@@ -32,20 +32,18 @@ def get_removal_policy(default=None):
 
 ###############################################################################
 # Environment
-# The environment variables used here are available as a method to inject different values at runtime. They work with
-# my CI/CD pipeline but may complicate other's usage.  To work around the environment variable requirement, you can
-# provide a default value instead.
+# The environment variables used here are available as a method to inject different values at runtime. 
 ###############################################################################
 # Root DNS Account - This is the account where the parent DNS zone that will delegate to the deployment account.
-hosted_zone_parent_account = get_environment_variable("HOSTED_ZONE_PARENT_ACCOUNT", "9876543210")  # REPLACE THE DEFAULT VALUE
-hosted_zone_parent_name = get_environment_variable("HOSTED_ZONE_PARENT_NAME", "my.dns.name")  # REPLACE THE DEFAULT VALUE
+hosted_zone_parent_account = get_environment_variable("HOSTED_ZONE_PARENT_ACCOUNT")
+hosted_zone_parent_name = get_environment_variable("HOSTED_ZONE_PARENT_NAME")
 
 # Deployment Account - This is the account where the Bedrock API, Lambda, etc. will be deployed.
-aws_account_id = get_environment_variable("AWS_ACCOUNT_ID", "0123456789")  # REPLACE THE DEFAULT VALUE
-hosted_zone_name = get_environment_variable("HOSTED_ZONE_NAME", "dev.my.dns.name")  # REPLACE THE DEFAULT VALUE
+aws_account_id = get_environment_variable("AWS_ACCOUNT_ID")
+hosted_zone_name = get_environment_variable("HOSTED_ZONE_NAME")
 
 # Even with a strong API key, I recommend locking this down to only trusted IP ranges.  This is applied to the ALB security group.
-allowed_cidr = get_environment_variable("ALLOWED_CIDR", "0.0.0.0/0").split(',')  # STRONGLY RECOMMEND REPLACING THE DEFAULT VALUE
+allowed_cidr = get_environment_variable("ALLOWED_CIDR").split(',')
 
 # These values are compatible with the values from the aws-samples/bedrock-access-gateway CFN template
 api_handler_name = get_environment_variable("API_HANDLER_NAME", "BedrockAPIHandler")

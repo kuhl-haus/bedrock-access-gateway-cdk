@@ -3,8 +3,9 @@
 
 Example CDK to accompany my fork of aws-samples/bedrock-access-gateway at [kuhl-haus/bedrock-access-gateway/tree/oldschool-engineer](https://github.com/kuhl-haus/bedrock-access-gateway/tree/oldschool-engineer).
 
-
 ---
+
+## Setup
 
 The `cdk.json` file tells the CDK Toolkit how to execute your app.
 
@@ -40,101 +41,145 @@ Once the virtualenv is activated, you can install the required dependencies.
 python -m pip install -r requirements.txt --user
 ```
 
-**VERY IMPORTANT** - Replace the example default values in `app.py` for the following environment variables:
-* HOSTED_ZONE_PARENT_ACCOUNT
-* HOSTED_ZONE_PARENT_NAME
-* AWS_ACCOUNT_ID
-* HOSTED_ZONE_NAME
 
-You will need to create a role in the Hosted Zone Parent Account with the following naming convention: `r53_${HOSTED_ZONE_PARENT_NAME}_${AWS_ACCOUNT_ID}`
+## Deploy the stacks
 
-**Permissions**
-Replace `HOSTED_ZONE_PARENT_ID` with the hosted zone ID that will delegate to the deployment account.
-```
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "VisualEditor0",
-            "Effect": "Allow",
-            "Action": [
-                "route53:GetHostedZone",
-                "route53:ChangeResourceRecordSets",
-                "route53:ListResourceRecordSets"
-            ],
-            "Resource": [
-                "arn:aws:route53:::hostedzone/HOSTED_ZONE_PARENT_ID"
-            ]
-        },
-        {
-            "Sid": "VisualEditor1",
-            "Effect": "Allow",
-            "Action": [
-                "route53:TestDNSAnswer",
-                "route53:ListHostedZones",
-                "route53:GetHostedZoneCount",
-                "route53:ListHostedZonesByName"
-            ],
-            "Resource": "*"
-        }
-    ]
-}
+The CDK stacks and Docker image can be built and deployed on Windows or *nix-like environments.  
+
+The bash and PowerShell scripts/instructions are provided here as best-effort to simplify building and deploying the stacks in your environment.  There are a myriad of reasons why these scripts may fail that has nothing to do with the code itself.  Therefore, I cannot help troubleshoot any problems or issues with deployment failures.
+
+### PowerShell
+
+Set `StackParameters` values.
+
+I strongly recommend setting `AllowedCidr` to only allow trusted IP ranges.
 
 ```
-
-**Trust Relationships**
-
-Replace `AWS_ACCOUNT_ID` with the account ID where the Lambda will be deployed.
-```
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Principal": {
-                "AWS": "arn:aws:iam::AWS_ACCOUNT_ID:root"
-            },
-            "Action": "sts:AssumeRole",
-            "Condition": {}
-        }
-    ]
+$StackParameters = @{
+    AllowedCidr="127.0.0.1/32";
+    AwsAccountId="0123456789012";
+    HostedZoneParentAccount="9876543210123";
+    HostedZoneParentName="foo.com";
+    HostedZoneName="bedrock.foo.com";
 }
 ```
 
-While not required, I strongly recommend setting `ALLOWED_CIDR` to only allow trusted IP ranges.
-
-
-Synthesize the CDK definition files.
+Deploy the Route 53 delegate role in the hosted zone parent account.
 ```
-cdk synth
+.\scripts\create-r53-delegate-role.ps1 @StackParameters
 ```
 
-List stacks:
+Deploy the Route 53 hosted zone and ECR repository in the deployment account.
 ```
-cdk ls
+.\scripts\deploy-dns-stack.ps1 @StackParameters
+
+.\scripts\deploy-api-artifacts-stack.ps1 @StackParameters
 ```
 
-Bootstrap the stacks
-```
-cdk bootstrap 
-```
+Upload the Docker image to ECR
 
-Deploy all the stacks
-```
-cdk deploy --all --require-approval never --progress events
-```
+The PowerShell script is only in my fork:
+https://github.com/kuhl-haus/bedrock-access-gateway/blob/oldschool-engineer/scripts/push-to-ecr.ps1
 
-Deploy each stack individually
 ```
-cdk deploy dns-stack --require-approval never --progress events
-cdk deploy api-artifacts --require-approval never --progress events
-cdk deploy api-handler --require-approval never --progress events
-cdk deploy api-lb --require-approval never --progress events
-
+gh repo clone kuhl-haus/bedrock-access-gateway
+cd bedrock-access-gateway
+git checkout oldschool-engineer
+cd src
+..\scripts\push-to-ecr.ps1
 ```
 
 
-## Useful commands
+Deploy the Lambda and Load Balancer stacks:
+```
+.\scripts\deploy-api-handler-stack.ps1 @StackParameters
+
+.\scripts\deploy-api-lb-stack.ps1 @StackParameters
+
+```
+
+### Bash
+
+I strongly recommend setting AllowedCidr to only allow trusted IP ranges.
+
+```
+# Define parameters as environment variables
+export AllowedCidr="127.0.0.1/32"
+export AwsAccountId="0123456789012"
+export HostedZoneParentAccount="9876543210123"
+export HostedZoneParentName="foo.com"
+export HostedZoneName="bedrock.foo.com"
+
+```
+
+Deploy the Route 53 delegate role in the hosted zone parent account.
+
+```
+./scripts/create-r53-delegate-role.sh \
+    --allowed-cidr "${AllowedCidr}" \
+    --aws-account-id "${AwsAccountId}" \
+    --hosted-zone-parent-account "${HostedZoneParentAccount}" \
+    --hosted-zone-parent-name "${HostedZoneParentName}" \
+    --hosted-zone-name "${HostedZoneName}"
+```
+
+Deploy the Route 53 hosted zone and ECR repository in the deployment account.
+```
+./scripts/deploy-dns-stack.sh \
+    --allowed-cidr "${AllowedCidr}" \
+    --aws-account-id "${AwsAccountId}" \
+    --hosted-zone-parent-account "${HostedZoneParentAccount}" \
+    --hosted-zone-parent-name "${HostedZoneParentName}" \
+    --hosted-zone-name "${HostedZoneName}"
+
+./scripts/deploy-api-artifacts-stack.sh \
+    --allowed-cidr "${AllowedCidr}" \
+    --aws-account-id "${AwsAccountId}" \
+    --hosted-zone-parent-account "${HostedZoneParentAccount}" \
+    --hosted-zone-parent-name "${HostedZoneParentName}" \
+    --hosted-zone-name "${HostedZoneName}"
+
+```
+
+Upload the Docker image to ECR
+
+Bash script: https://github.com/aws-samples/bedrock-access-gateway/blob/main/scripts/push-to-ecr.sh
+
+```
+gh repo clone kuhl-haus/bedrock-access-gateway
+cd bedrock-access-gateway
+git checkout oldschool-engineer
+cd src
+../scripts/push-to-ecr.sh
+```
+
+
+Deploy the Lambda and Load Balancer stacks:
+```
+./scripts/deploy-api-handler-stack.sh \
+    --allowed-cidr "${AllowedCidr}" \
+    --aws-account-id "${AwsAccountId}" \
+    --hosted-zone-parent-account "${HostedZoneParentAccount}" \
+    --hosted-zone-parent-name "${HostedZoneParentName}" \
+    --hosted-zone-name "${HostedZoneName}"
+    
+./scripts/deploy-api-lb-stack.sh \
+    --allowed-cidr "${AllowedCidr}" \
+    --aws-account-id "${AwsAccountId}" \
+    --hosted-zone-parent-account "${HostedZoneParentAccount}" \
+    --hosted-zone-parent-name "${HostedZoneParentName}" \
+    --hosted-zone-name "${HostedZoneName}"
+    
+```
+
+
+## Test
+```
+curl https://proxy.bedrock.foo.com/health
+
+```
+
+# Useful commands
 
  * `cdk ls`          list all stacks in the app
  * `cdk synth`       emits the synthesized CloudFormation template

@@ -41,7 +41,7 @@
     Specifies the removal policy for AWS resources.
 
 .EXAMPLE
-    .\Deploy-CdkStack.ps1 `
+    .\create-r53-delegate-role.ps1 `
         -AllowedCidr "127.0.0.1/32" `
         -ApiHandlerName "BedrockAPIHandler" `
         -ApiHostname "proxy" `
@@ -56,7 +56,7 @@
 
 .EXAMPLE
     $env:ALLOWED_CIDR = "127.0.0.1/32"
-    .\Deploy-CdkStack.ps1 `
+    .\create-r53-delegate-role.ps1 `
         -ApiHandlerName "BedrockAPIHandler" `
         -ApiHostname "proxy" `
         -AwsAccountId "987654321098" `
@@ -74,31 +74,30 @@
 
 [CmdletBinding()]
 param (
-    [Parameter(Mandatory)]    
-    [string]$AllowedCidr,
-    
     [Parameter(Mandatory)]
     [string]$AwsAccountId,
-    
+
     [Parameter(Mandatory)]
     [string]$HostedZoneParentAccount,
-    
+
     [Parameter(Mandatory)]
     [string]$HostedZoneParentName,
-    
+
     [Parameter(Mandatory)]
     [string]$HostedZoneName,
 
+    [string]$AllowedCidr='0.0.0.0/0',
+
     [string]$ApiHandlerName="BedrockAPIHandler",
-
+    
     [string]$ApiHostname="proxy",
-
+    
     [string]$AwsRegion="us-west-2",
-
+    
     [string]$EcrRepositoryName="bedrock-proxy-api",
-
+    
     [string]$EnableCrossRegion="false",
-
+    
     [ValidateSet('DESTROY', 'RETAIN','SNAPSHOT','RETAIN_ON_UPDATE_OR_DELETE')]
     [string]$RemovalPolicy='DESTROY'
 )
@@ -108,7 +107,7 @@ $ErrorActionPreference = 'Stop'
 
 # Create a hashtable of environment variables to set
 $envVars = @{
-    'ALLOWED_CIDR' = $AllowedCidr
+    'ALLOWED_CIDR' = $AllowedCidr # Not used
     'AWS_ACCOUNT_ID' = $AwsAccountId
     'HOSTED_ZONE_PARENT_ACCOUNT' = $HostedZoneParentAccount
     'HOSTED_ZONE_PARENT_NAME' = $HostedZoneParentName
@@ -137,13 +136,12 @@ try {
     Write-Verbose "Executing 'cdk ls'"
     cdk ls
     if ($LASTEXITCODE -ne 0) { throw "cdk ls failed" }
-    
-    Write-Verbose "Executing 'cdk bootstrap'"
-    cdk bootstrap
-    if ($LASTEXITCODE -ne 0) { throw "cdk bootstrap failed" }
-    
+
     Write-Verbose "Executing 'cdk deploy'"
-    cdk deploy --all --require-approval never --progress events
+    $DelegationRoleStackName = "r53_{0}_{1}" -f $HostedZoneName, $AwsAccountId
+    $DelegationRoleStackName = $DelegationRoleStackName -replace '\.', '-'
+    $DelegationRoleStackName = $DelegationRoleStackName -replace '_', '-'
+    cdk deploy $DelegationRoleStackName --require-approval never --progress events
     if ($LASTEXITCODE -ne 0) { throw "cdk deploy failed" }
 }
 catch {

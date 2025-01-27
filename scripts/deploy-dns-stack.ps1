@@ -41,7 +41,7 @@
     Specifies the removal policy for AWS resources.
 
 .EXAMPLE
-    .\Deploy-CdkStack.ps1 `
+    .\deploy-dns-stack.ps1 `
         -AllowedCidr "127.0.0.1/32" `
         -ApiHandlerName "BedrockAPIHandler" `
         -ApiHostname "proxy" `
@@ -56,7 +56,7 @@
 
 .EXAMPLE
     $env:ALLOWED_CIDR = "127.0.0.1/32"
-    .\Deploy-CdkStack.ps1 `
+    .\deploy-dns-stack.ps1 `
         -ApiHandlerName "BedrockAPIHandler" `
         -ApiHostname "proxy" `
         -AwsAccountId "987654321098" `
@@ -137,13 +137,9 @@ try {
     Write-Verbose "Executing 'cdk ls'"
     cdk ls
     if ($LASTEXITCODE -ne 0) { throw "cdk ls failed" }
-    
-    Write-Verbose "Executing 'cdk bootstrap'"
-    cdk bootstrap
-    if ($LASTEXITCODE -ne 0) { throw "cdk bootstrap failed" }
-    
+
     Write-Verbose "Executing 'cdk deploy'"
-    cdk deploy --all --require-approval never --progress events
+    cdk deploy dns-stack --require-approval never --progress events
     if ($LASTEXITCODE -ne 0) { throw "cdk deploy failed" }
 }
 catch {

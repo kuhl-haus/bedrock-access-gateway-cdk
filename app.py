@@ -8,6 +8,7 @@ from cdk.stacks.base_stack import BillingTag
 from cdk.stacks.artifacts_stack import ArtifactsStack, ArtifactsStackProps
 from cdk.stacks.hosted_zone_stack import HostedZoneStack, HostedZoneStackProps
 from cdk.stacks.load_balancer_stack import LoadBalancerStack, LoadBalancerStackProps
+from cdk.stacks.r53_delegate_role_stack import R53DelegateRoleStack, R53DelegateRoleStackProps
 from cdk.stacks.rest_api_stack import RestApiStack, RestApiStackProps
 
 
@@ -58,6 +59,20 @@ removal_policy = get_removal_policy("DESTROY")
 env = cdk.Environment(account=aws_account_id, region=aws_region)
 app = cdk.App()
 billing_tag = BillingTag("BedrockAPI")
+delegation_role_name = f"r53_{hosted_zone_name}_{aws_account_id}"
+# DNS Delegate Role - IAM Role to enable cross-account delegation
+delegation_role_stack_name = delegation_role_name.replace(".", "-")
+delegation_role_stack_name = delegation_role_stack_name.replace("_", "-")
+r53_role = R53DelegateRoleStack(app, delegation_role_stack_name, **{
+    "env": cdk.Environment(account=hosted_zone_parent_account, region=aws_region),
+    "billing_tag": billing_tag,
+    "props": R53DelegateRoleStackProps(
+        hosted_zone_parent_name=hosted_zone_parent_name,
+        delegation_role_name=delegation_role_name,
+        delegation_account_id=aws_account_id,
+        removal_policy=removal_policy,
+    )
+})
 ###############################################################################
 #  DANGER - DANGER    DEPLOY THE DNS STACK ONE TIME ONLY!    DANGER - DANGER  #
 ###############################################################################
@@ -68,7 +83,7 @@ dns = HostedZoneStack(app, "dns-stack", **{
         hosted_zone_name=hosted_zone_name,
         hosted_zone_parent_name=hosted_zone_parent_name,
         hosted_zone_parent_account=hosted_zone_parent_account,
-        delegation_role_name=f"r53_{hosted_zone_parent_name}_{aws_account_id}",
+        delegation_role_name=delegation_role_name,
     )
 })
 ###############################################################################

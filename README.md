@@ -1,7 +1,14 @@
 
 # bedrock-access-gateway-cdk
 
-Example CDK to accompany my fork of aws-samples/bedrock-access-gateway at [kuhl-haus/bedrock-access-gateway/tree/oldschool-engineer](https://github.com/kuhl-haus/bedrock-access-gateway/tree/oldschool-engineer).
+Example CDK to deploy AWS Lambda infrastructure that is compatible aws-samples/bedrock-access-gateway at [aws-samples/bedrock-access-gateway](https://github.com/aws-samples/bedrock-access-gateway).
+
+What's included:
+* ECR Repository ([artifacts_stack.py](https://github.com/kuhl-haus/bedrock-access-gateway-cdk/blob/mainline/cdk/stacks/artifacts_stack.py))
+* Route53 Hosted Zone ([hosted_zone_stack.py](https://github.com/kuhl-haus/bedrock-access-gateway-cdk/blob/mainline/cdk/stacks/hosted_zone_stack.py))
+* IAM Role for creating Route53 delegation records in the hosted zone parent account. ([r53_delegate_role_stack.py](https://github.com/kuhl-haus/bedrock-access-gateway-cdk/blob/mainline/cdk/stacks/r53_delegate_role_stack.py))
+* ALB, Route53 DNS name for your API, & ACM vended TLS certificate ([load_balancer_stack.py](https://github.com/kuhl-haus/bedrock-access-gateway-cdk/blob/mainline/cdk/stacks/load_balancer_stack.py))
+* Rest API: AWS Lambda, Lambda IAM role, Secrets Manager managed API key, KMS Customer-Managed Key ([rest_api_stack.py](https://github.com/kuhl-haus/bedrock-access-gateway-cdk/blob/mainline/cdk/stacks/rest_api_stack.py))
 
 ---
 
@@ -78,15 +85,18 @@ Deploy the Route 53 hosted zone and ECR repository in the deployment account.
 
 Upload the Docker image to ECR
 
-The PowerShell script is only in my fork:
-https://github.com/kuhl-haus/bedrock-access-gateway/blob/oldschool-engineer/scripts/push-to-ecr.ps1
+The PowerShell script is only in my cdk repository:
+https://github.com/kuhl-haus/bedrock-access-gateway-cdk/blob/mainline/scripts/push-to-ecr.ps1
 
 ```
-gh repo clone kuhl-haus/bedrock-access-gateway
-cd bedrock-access-gateway
-git checkout oldschool-engineer
-cd src
+gh repo clone aws-samples/bedrock-access-gateway
+cd .\bedrock-access-gateway\scripts\
+
+Invoke-RestMethod -Uri https://raw.githubusercontent.com/kuhl-haus/bedrock-access-gateway-cdk/refs/heads/mainline/scripts/push-to-ecr.ps1 -Outfile .\push-to-ecr.ps1
+
+cd ..\src
 ..\scripts\push-to-ecr.ps1
+
 ```
 
 
@@ -146,10 +156,8 @@ Upload the Docker image to ECR
 Bash script: https://github.com/aws-samples/bedrock-access-gateway/blob/main/scripts/push-to-ecr.sh
 
 ```
-gh repo clone kuhl-haus/bedrock-access-gateway
-cd bedrock-access-gateway
-git checkout oldschool-engineer
-cd src
+gh repo clone aws-samples/bedrock-access-gateway
+cd bedrock-access-gateway/src
 ../scripts/push-to-ecr.sh
 ```
 

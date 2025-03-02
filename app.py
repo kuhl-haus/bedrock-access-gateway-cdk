@@ -8,6 +8,7 @@ from cdk.stacks.base_stack import BillingTag
 from cdk.stacks.artifacts_stack import ArtifactsStack, ArtifactsStackProps
 from cdk.stacks.hosted_zone_stack import HostedZoneStack, HostedZoneStackProps
 from cdk.stacks.load_balancer_stack import LoadBalancerStack, LoadBalancerStackProps
+from cdk.stacks.on_prem_hybrid_stack import OnPremHybridStack, OnPremHybridStackProps
 from cdk.stacks.r53_delegate_role_stack import R53DelegateRoleStack, R53DelegateRoleStackProps
 from cdk.stacks.rest_api_stack import RestApiStack, RestApiStackProps
 
@@ -36,15 +37,15 @@ def get_removal_policy(default=None):
 # The environment variables used here are available as a method to inject different values at runtime. 
 ###############################################################################
 # Root DNS Account - This is the account where the parent DNS zone that will delegate to the deployment account.
-hosted_zone_parent_account = get_environment_variable("HOSTED_ZONE_PARENT_ACCOUNT")
-hosted_zone_parent_name = get_environment_variable("HOSTED_ZONE_PARENT_NAME")
+hosted_zone_parent_account = get_environment_variable("HOSTED_ZONE_PARENT_ACCOUNT", "nil")
+hosted_zone_parent_name = get_environment_variable("HOSTED_ZONE_PARENT_NAME", "nil")
 
 # Deployment Account - This is the account where the Bedrock API, Lambda, etc. will be deployed.
 aws_account_id = get_environment_variable("AWS_ACCOUNT_ID")
-hosted_zone_name = get_environment_variable("HOSTED_ZONE_NAME")
+hosted_zone_name = get_environment_variable("HOSTED_ZONE_NAME", "nil")
 
 # Even with a strong API key, I recommend locking this down to only trusted IP ranges.  This is applied to the ALB security group.
-allowed_cidr = get_environment_variable("ALLOWED_CIDR").split(',')
+allowed_cidr = get_environment_variable("ALLOWED_CIDR", "0.0.0.0/0").split(',')
 
 # These values are compatible with the values from the aws-samples/bedrock-access-gateway CFN template
 api_handler_name = get_environment_variable("API_HANDLER_NAME", "BedrockAPIHandler")
@@ -54,6 +55,8 @@ repo_name = get_environment_variable("ECR_REPOSITORY_NAME", "bedrock-proxy-api")
 enable_cross_region_inference = get_environment_variable("ENABLE_CROSS_REGION_INFERENCE", "false")
 removal_policy = get_removal_policy("DESTROY")
 
+# This is for the on-premises stack so the Secret ARN can be looked up dynamically.
+secret_arn_parameter = get_environment_variable("SECRET_ARN_PARAMETER", "BedrockApiKey")
 
 # https://docs.aws.amazon.com/cdk/latest/guide/environments.html
 env = cdk.Environment(account=aws_account_id, region=aws_region)
@@ -120,6 +123,15 @@ lb = LoadBalancerStack(app, "api-lb", **{
         hosted_zone_name=dns.zone.zone_name,
         removal_policy=removal_policy,
     )
+})
+###############################################################################
+# OnPrem
+on_prem = OnPremHybridStack(app, "on-prem", **{
+    "env": env, "billing_tag": billing_tag,
+    "props": OnPremHybridStackProps(
+        secret_arn_parameter=secret_arn_parameter,
+        removal_policy=removal_policy,
+    ),
 })
 ###############################################################################
 app.synth()

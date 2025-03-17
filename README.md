@@ -4,15 +4,29 @@
 Example CDK to deploy AWS Lambda infrastructure that is compatible aws-samples/bedrock-access-gateway at [aws-samples/bedrock-access-gateway](https://github.com/aws-samples/bedrock-access-gateway).
 
 What's included:
+
+## AWS-Hosted
 * ECR Repository ([artifacts_stack.py](https://github.com/kuhl-haus/bedrock-access-gateway-cdk/blob/mainline/cdk/stacks/artifacts_stack.py))
 * Route53 Hosted Zone ([hosted_zone_stack.py](https://github.com/kuhl-haus/bedrock-access-gateway-cdk/blob/mainline/cdk/stacks/hosted_zone_stack.py))
 * IAM Role for creating Route53 delegation records in the hosted zone parent account. ([r53_delegate_role_stack.py](https://github.com/kuhl-haus/bedrock-access-gateway-cdk/blob/mainline/cdk/stacks/r53_delegate_role_stack.py))
 * ALB, Route53 DNS name for your API, & ACM vended TLS certificate ([load_balancer_stack.py](https://github.com/kuhl-haus/bedrock-access-gateway-cdk/blob/mainline/cdk/stacks/load_balancer_stack.py))
 * Rest API: AWS Lambda, Lambda IAM role, Secrets Manager managed API key, KMS Customer-Managed Key ([rest_api_stack.py](https://github.com/kuhl-haus/bedrock-access-gateway-cdk/blob/mainline/cdk/stacks/rest_api_stack.py))
 
+
+Everything you need to run a Lambda or container based OpenAI-compatible API.
+
+
+## Self-Hosted
+* On-Premises Hybrid Stack: IAM user, IAM group, Secrets Manager managed API key, KMS Customer-Managed Key, and SSM Parameter (for dynamic API key look-up) ([on_prem_hybrid_stack.py](https://github.com/kuhl-haus/bedrock-access-gateway-cdk/blob/mainline/cdk/stacks/on_prem_hybrid_stack.py))
+
+
+Infrastructure to access AWS Bedrock APIs from on-premises using IAM Access Keys. 
+
+
 ---
 
-## Setup
+
+# Setup
 
 The `cdk.json` file tells the CDK Toolkit how to execute your app.
 
@@ -48,8 +62,58 @@ Once the virtualenv is activated, you can install the required dependencies.
 python -m pip install -r requirements.txt --user
 ```
 
+---
 
-## Deploy the stacks
+## Deploy the Self-Hosted stack:
+
+This stack is for hosting the API on-premises.  The API key is stored in Secrets Manager, like the AWS-hosted version, but uses SSM to store the ARN. This stack also creates an IAM user with permissions to invoke Bedrock APIs.  An access key is automatically generated and stored in Secrets Manager for retrieval after the stack is deployed.
+
+
+### PowerShell
+
+Set `StackParameters` values. AWS account ID is required, all other parameters are optional.  The default values are shown for context.
+
+```
+$StackParameters = @{
+    AwsAccountId="0123456789012";
+    AwsRegion="us-west-2";
+    SecretArnParameter="BedrockApiKey";
+    RemovalPolicy="RETAIN";
+}
+```
+
+```
+.\scripts\deploy-on-prem-hybrid-stack.ps1 @StackParameters
+```
+
+### Bash
+
+Options are set as environment variables or via command-line. AWS account ID is required, all other parameters are optional.  The default values are shown for context.
+
+
+```
+
+export AWS_ACCOUNT_ID="0123456789012"
+export AWS_REGION="us-west-2"
+export SECRET_ARN_PARAMETER="BedrockApiKey"
+export REMOVAL_POLICY="RETAIN"
+
+./scripts/deploy-on-prem-hybrid-stack.sh
+```
+
+
+```
+./scripts/deploy-on-prem-hybrid-stack.sh \
+    --aws-account-id 0123456789012 
+    --aws-region us-west-2 
+    --secret-arn-parameter BedrockApiKey 
+    --removal-policy RETAIN
+```
+
+---
+
+
+## Deploy the AWS-Hosted stacks
 
 The CDK stacks and Docker image can be built and deployed on Windows or *nix-like environments.  
 
@@ -179,7 +243,6 @@ Deploy the Lambda and Load Balancer stacks:
     --hosted-zone-name "${HostedZoneName}"
     
 ```
-
 
 ## Test
 ```

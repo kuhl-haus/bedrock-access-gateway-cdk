@@ -11,6 +11,7 @@ from cdk.stacks.load_balancer_stack import LoadBalancerStack, LoadBalancerStackP
 from cdk.stacks.on_prem_hybrid_stack import OnPremHybridStack, OnPremHybridStackProps
 from cdk.stacks.r53_delegate_role_stack import R53DelegateRoleStack, R53DelegateRoleStackProps
 from cdk.stacks.rest_api_stack import RestApiStack, RestApiStackProps
+from cdk.stacks.bedrock_api_user_stack import BedrockApiUserStack, BedrockApiUserStackProps
 
 
 def get_environment_variable(name, default=None):
@@ -57,6 +58,10 @@ removal_policy = get_removal_policy("DESTROY")
 
 # This is for the on-premises stack so the Secret ARN can be looked up dynamically.
 secret_arn_parameter = get_environment_variable("SECRET_ARN_PARAMETER", "BedrockApiKey")
+
+# This is for the Bedrock API IAM user group stack.
+bedrock_api_user_name = get_environment_variable("BEDROCK_API_USER_NAME", "BedrockApiUser")
+bedrock_api_users_group_name = get_environment_variable("BEDROCK_API_USERS_GROUP_NAME", "BedrockApiUsers")
 
 # https://docs.aws.amazon.com/cdk/latest/guide/environments.html
 env = cdk.Environment(account=aws_account_id, region=aws_region)
@@ -130,6 +135,16 @@ on_prem = OnPremHybridStack(app, "on-prem", **{
     "env": env, "billing_tag": billing_tag,
     "props": OnPremHybridStackProps(
         secret_arn_parameter=secret_arn_parameter,
+        removal_policy=removal_policy,
+    ),
+})
+
+# Bedrock API Only
+bedrock_user_group = BedrockApiUserStack(app, "bedrock-api-users", **{
+    "env": env, "billing_tag": billing_tag,
+    "props": BedrockApiUserStackProps(
+        user_name=bedrock_api_user_name,
+        group_name=bedrock_api_users_group_name,
         removal_policy=removal_policy,
     ),
 })

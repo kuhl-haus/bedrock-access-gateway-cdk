@@ -57,7 +57,8 @@ class OnPremHybridStack(BaseStack):
         )
 
         # IAM Access
-        self.__create_iam_user(kms_cmk=self.kms_key, removal_policy=props.removal_policy)
+        self.__create_iam_user(removal_policy=props.removal_policy)
+        self.__create_access_key(kms_cmk=self.kms_key, removal_policy=props.removal_policy)
 
         # Cloudformation Outputs
         CfnOutput(
@@ -97,7 +98,7 @@ class OnPremHybridStack(BaseStack):
         )
         self.param.apply_removal_policy(removal_policy)
 
-    def __create_iam_user(self, kms_cmk: kms.Key, removal_policy: RemovalPolicy):
+    def __create_iam_user(self, removal_policy: RemovalPolicy):
         # IAM Group
         self.iam_group = iam.Group(
             self, "BedrockApiUsers",
@@ -139,8 +140,8 @@ class OnPremHybridStack(BaseStack):
         self.iam_user.apply_removal_policy(removal_policy)
         self.iam_user.add_to_group(self.iam_group)
 
-        # Note: this is not very secure - only use for proof-of-concept/initial testing.
-        # Disable these keys as soon as possible.
+    def __create_access_key(self, kms_cmk: kms.Key, removal_policy: RemovalPolicy):
+        # Note: this is not secure - only use for proof-of-concept/testing.
         access_key = iam.CfnAccessKey(
             self, "BedrockApiUserAccessKey",
             user_name=self.iam_user.user_name
@@ -149,8 +150,10 @@ class OnPremHybridStack(BaseStack):
             "AccessKeyId": SecretValue.unsafe_plain_text(access_key.ref),
             "SecretAccessKey": SecretValue.unsafe_plain_text(access_key.attr_secret_access_key),
         }
-        sm.Secret(
+        secret = sm.Secret(
             self, "iam_access_key",
             encryption_key=kms_cmk,
             secret_object_value=secret_value
         )
+
+        secret.apply_removal_policy(removal_policy)
